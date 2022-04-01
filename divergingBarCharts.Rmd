@@ -1,0 +1,81 @@
+---
+title: "Two ways of creating diverging stacked bar charts"
+author: "Yuexi (Tracy) Chen"
+email: "ychen151@umd.edu"
+date: "4/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 0. Let's create some dummy restaurant review data
+```{r}
+restaurant_df <- data.frame(restaurant=c('SweetRed', 'BananaBee'), 
+                            stronglyAgree=c(5,1), 
+                            agree=c(4,2), 
+                            neutral = c(3,3), 
+                            disagree=c(2,4), 
+                            stronglyDisagree=c(1,5))
+
+#column names with space!
+colnames(restaurant_df) <-  c('Restaurant',"Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly disagree")
+
+restaurant_df
+```
+
+
+## 1. with HH package
+```{r}
+install.packages('HH')
+```
+
+```{r}
+HH::likert(Restaurant ~ ., restaurant_df, main="I had great dining experience")
+```
+
+## 2. with ggplot2
+```{r}
+library(ggplot2)
+scales <- c('Strongly agree', 'Agree', 'Neutral', 'Disagree', 'Strongly disagree')
+bananaBeeNames <- rep('BananBee', 5)
+bananaBeeRating <-c(1, 2, 3, 4, 5)
+# convert disagree to be negative
+signedBananaBeeRating <-c(1, 2, 3, -4, -5)
+sweetRedNames <- rep('SweetRed', 5)
+sweetRedRating <- c(5, 4, 3, 2, 1)
+signedSweetRedRating <- c(5, 4, 3, -2, -1)
+restaurant_df_long <- data.frame(restaurant = c(bananaBeeNames, sweetRedNames), 
+                                 count = c(bananaBeeRating, sweetRedRating), 
+                                 signedCount = c(signedBananaBeeRating, signedSweetRedRating),
+                                 scales = rep(scales, 2)
+                                 )
+
+restaurant_df_long
+```
+
+```{r}
+# change the order
+restaurant_df_long$scales <- factor(restaurant_df_long$scales, levels = c('Strongly agree', 'Agree', 'Strongly disagree','Disagree', 'Neutral'))
+
+ggplot(data = restaurant_df_long, aes(x = restaurant, 
+             y = signedCount,
+             fill = scales)) +
+  geom_col(width = 0.5) +
+  geom_text(aes(label = count),
+            position = position_stack(vjust = 0.5)) +
+  # flip x and y axis
+  coord_flip() +
+  scale_x_discrete() +
+  # use customized colors
+  scale_fill_manual(breaks = scales,
+                    values = c(
+                      "Strongly agree" = "hotpink1",
+                      "Agree" = "lightpink1",
+                      'Neutral' = 'gray',
+                      'Strongly disagree' = "mediumpurple2",
+                      'Disagree' = "mediumpurple4"
+                    )) +
+  labs(title = "I had great dining experience")
+```
